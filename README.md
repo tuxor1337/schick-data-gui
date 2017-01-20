@@ -26,8 +26,9 @@ operating systems this might or might not work.
 Screenshots
 ===========
 
-![screenshot1](https://raw.githubusercontent.com/tuxor1337/schick-data-gui/master/screenshot1.png "Display FONT6 in SCHICKM.DAT") #
-![screenshot2](https://raw.githubusercontent.com/tuxor1337/schick-data-gui/master/screenshot2.png "Display a variable in SCHICK.EXE") #
+![screenshot1](https://raw.githubusercontent.com/tuxor1337/schick-data-gui/master/screenshot.png "Display FONT6 in SCHICKM.DAT")
+
+![screenshot2](https://raw.githubusercontent.com/tuxor1337/schick-data-gui/master/screenshot2.png "Display a variable in SCHICK.EXE")
 
 To do
 =====
