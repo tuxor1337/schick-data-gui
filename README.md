@@ -45,6 +45,6 @@ To do
 Links
 =====
 
-Bright-Eyes project: https://www.github.com/Henne/Bright-Eyes
-Documentation of SCHICK.DAT contents: http://www.bright-eyes.obiwahn.de/index.php/SCHICK.DAT
+* Bright-Eyes project: https://www.github.com/Henne/Bright-Eyes
+* Documentation of SCHICK.DAT contents: http://www.bright-eyes.obiwahn.de/index.php/SCHICK.DAT
 
