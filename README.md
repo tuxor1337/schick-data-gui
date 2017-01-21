@@ -13,14 +13,14 @@ How to run
 ==========
 
 This software is made for Linux systems, but it should also run on other
-operating systems, as long as Python 3.x (with `tkinter` and `pillow`) is
+operating systems, as long as Python 3.x (with `tkinter`, `numpy` and `pillow`) is
 installed.
 
 It requires the files `SCHICK.DAT`, `SCHICKM.EXE` as well as `symbols.h` from the
 Bright-Eyes project. Place these files in the same directory as schick-gui.py 
 before you start it (however, on Linux, a soft link is sufficient).
 
-On Linux systems, `schick-gui.py` can be run from the command line. For other
+On Linux systems, `schick-data-gui.py` can be run from the command line. For other
 operating systems this might or might not work.
 
 Screenshots
