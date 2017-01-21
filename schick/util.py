@@ -1,6 +1,6 @@
 
 import string, math
-    
+
 def hexdump(bytes):
     if len(bytes) == 0:
         return "0000: "

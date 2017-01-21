@@ -1,3 +1,5 @@
 SCHICKM.EXE
 SCHICK.DAT
 symbols.h
+__pycache__
+*.pyc
