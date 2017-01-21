@@ -9,7 +9,7 @@ from tkinter import ttk
 import os
 
 curr_path = os.path.dirname(os.path.realpath(__file__))
-    
+
 def destroy_cb():
     root.destroy()
     schickm_exe.close()
@@ -37,4 +37,4 @@ schick_reader = SchickReader(schickm_exe, schick_dat, symbols_h)
 SchickGUI(root, schick_reader).grid(column=0, row=0, sticky=(N,E,S,W))
 
 root.mainloop()
-    
+

@@ -10,31 +10,31 @@ from tkinter import ttk
 class SchickGUI(ttk.Frame):
     def __init__(self, master, schick_reader):
         ttk.Frame.__init__(self, master, padding=(5, 5, 12, 12))
-        
+
         self.contents = {
             "SCHICKM.EXE": SchickmExeContent(self, schick_reader),
             "SCHICK.DAT": SchickDatContent(self, schick_reader),
             "Extras": SchickXContent(self, schick_reader)
         }
         self.content_types = ["SCHICK.DAT", "SCHICKM.EXE", "Extras"]
-        
+
         self.content = None
         self.lbox = FilteredListbox(self, color_cb=self.lbox_color_cb, height=30, width=30)
-        
+
         self.content_type = StringVar()
         o_menu = OptionMenu(self, self.content_type, *self.content_types)
-        
+
         o_menu.grid(column=0, row=0, sticky=(W,E))
         self.lbox.grid(column=0, row=1, sticky=(N,E,S,W))
         self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(1, weight=1)
-        
+
         self.lbox.bind('<<ListboxSelect>>', self.lbox_select_cb)
         self.content_type.trace("w", self.type_change_cb)
-        
+
         self.content_type.set(self.content_types[0])
         self.lbox_select_cb()
-        
+
     def type_change_cb(self, *args):
         c_type = self.content_type.get()
         if self.content is not None:
@@ -48,7 +48,7 @@ class SchickGUI(ttk.Frame):
         idx = self.lbox.curselection()
         if idx is not None:
             self.content.show(idx)
-            
+
     def lbox_color_cb(self, idx):
         return self.content.color_cb(idx)
-            
+

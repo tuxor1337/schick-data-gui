@@ -38,16 +38,16 @@ class SchickReader(object):
         self.schickm_exe = schickm_exe
         self.schick_dat = schick_dat
         self.symbols_h = symbols_h
-        
+
         self.text_ltx_index = None
         self.tevents_tab = None
         self.routes_tab = None
-        
+
         self.init_vars()
-        
+
         self.archive_files = self.get_var_bytes(self.get_var_by_name("SCHICK_DAT_FNAMES")).split(b"\0")
         self.archive_files = [s.strip().decode() for s in self.archive_files[1:-1]]
-        
+
     def init_vars(self):
         self.vars = []
         self.vars_info = []
@@ -58,7 +58,7 @@ class SchickReader(object):
                 continue
             self.vars.append("%s (0x%04x)" % (data["name"], data["offset"]))
             self.vars_info.append(data)
-            
+
     def parse_symbols_h_line(self, line):
         if line[:2] not in ["//", "#d"] or line.find("SYMBOLS_H") >= 0:
             return None
@@ -82,37 +82,37 @@ class SchickReader(object):
             l_type, _, l_comment = line[pos+14:-3].strip().partition(";")
             var["type"] = l_type.strip()
             var["comment"] = l_comment.strip()
-            
-            if var["offset"] != self.v_offset:  
+
+            if var["offset"] != self.v_offset:
                 print("0x{:04x} != 0x{:04x}".format(var["offset"], self.v_offset))
-                
+
             self.v_offset += sizeof(var["type"])
         return var
-        
+
     def get_var_by_offset(self, offset):
         for idx, v in enumerate(self.vars_info):
             if v["offset"] == offset:
                 return idx
         return None
-        
+
     def get_var_by_name(self, name):
         for idx, v in enumerate(self.vars_info):
             if v["name"] == name:
                 return idx
         return None
-            
+
     def get_var_mark(self, idx):
         return self.vars_info[idx]["mark"]
-            
+
     def get_var_name(self, idx):
         return self.vars_info[idx]["name"]
-        
+
     def get_var_type(self, idx):
         return self.vars_info[idx]["type"]
-        
+
     def get_var_comment(self, idx):
         return self.vars_info[idx]["comment"]
-        
+
     def get_var_bytes(self, idx):
         offset = self.vars_info[idx]["offset"]
         if idx == len(self.vars)-1:
@@ -121,15 +121,15 @@ class SchickReader(object):
             length = self.vars_info[idx+1]["offset"] - offset
         self.schickm_exe.seek(ds_offset + offset)
         return self.schickm_exe.read(length)
-        
+
     def get_ttx(self, no):
         if self.text_ltx_index is None:
             self.text_ltx_index = self.read_archive_tx_file("TEXT.LTX")
         return self.text_ltx_index[no]
-        
+
     def get_town(self, no):
         return self.get_ttx(text_ltx_towns + no)
-        
+
     def load_tevents(self):
         if self.tevents_tab is not None:
             return
@@ -140,7 +140,7 @@ class SchickReader(object):
                 zip(tevent_keys, struct.unpack("<3B", data[3*i:3*(i+1)]))
             ))
             self.tevents_tab[-1]["route_id"] -= 1
-        
+
     def load_routes(self):
         if self.routes_tab is not None:
             return
@@ -150,39 +150,39 @@ class SchickReader(object):
             self.routes_tab.append(dict(
                 zip(route_keys, struct.unpack("<9B", data[9*i:9*(i+1)]))
             ))
-        
+
     def get_route(self, no):
         self.load_routes()
         return self.routes_tab[no]
-        
+
     def get_tevent(self, no):
         self.load_tevents()
         return self.tevents_tab[no]
-        
+
     def get_in_head(self, no):
         return self.read_archive_nvf_file("IN_HEADS.NVF", no)[0]
-        
+
     def load_archive_file(self, fname):
         fileindex = self.archive_files.index(fname)
         self.schick_dat.seek(4*fileindex)
         start, end = struct.unpack("<LL", self.schick_dat.read(8))
         self.schick_dat.seek(start)
         return self.schick_dat, end - start
-        
+
     def read_archive_file(self, fname):
         f_handle, f_len = self.load_archive_file(fname)
         return f_handle.read(f_len)
-        
+
     def read_archive_tx_file(self, fname):
         tx_index = self.read_archive_file(fname).decode("cp850").split("\0")
         return [s.replace("\r","\n").strip() for s in tx_index]
-        
+
     def parse_pal(self, bytes, offset=0):
         palette = [[0,0,0]]*offset
         for i in range(0, len(bytes), 3):
             palette.append([b*4 for b in bytes[i:i+3]])
         return palette
-        
+
     def img_to_rgb(self, img):
         img["rgb"] = np.zeros((len(img["raw"]), 3), dtype=np.uint8)
         for i, b in enumerate(img["raw"]):
@@ -191,7 +191,7 @@ class SchickReader(object):
             else:
                 img["rgb"][i,:] = np.array(img["palette"][b], dtype=np.uint8)
         img["rgb"] = img["rgb"].reshape((img["height"], img["width"], 3))
-        
+
     def read_archive_nvf_file(self, fname, no=None):
         bytes = self.read_archive_file(fname)
         images = []
@@ -236,16 +236,16 @@ class SchickReader(object):
                 self.img_to_rgb(img)
                 images.append(img)
         return images
-        
+
     def read_archive_tlk_file(self, fname):
         tlk_handle, tlk_len = self.load_archive_file(fname)
         tlk_random = False
         if fname in random_tlk_files:
             tlk_random = True
-        
+
         header_bytes = tlk_handle.read(6)
         off, partners = struct.unpack("<LH", header_bytes)
-        
+
         informer_bytes = tlk_handle.read(partners*38)
         informer_tab = []
         for i in range(partners):
@@ -256,21 +256,22 @@ class SchickReader(object):
             informer['title'] = informer['title'].strip(b"\0").decode("cp850")
             informer['state_offset'] = informer['state_offset']//8
             informer_tab.append(informer)
-        
+
         state_bytes = tlk_handle.read(off - partners*38)
         state_tab = []
         for i in range(len(state_bytes)//8):
             struct_bytes = state_bytes[i*8:(i+1)*8]
-            state = zip(state_keys, struct.unpack("<h6B", struct_bytes))
-            state = dict(state)
+            state = dict(zip(state_keys, struct.unpack("<h6B", struct_bytes)))
             if tlk_random:
                 state['opt1'] *= 4
                 state['opt2'] *= 4
                 state['opt3'] *= 4
+            state['opt'] = [state['opt1'], state['opt2'], state['opt3']]
+            state['ans'] = [state['ans1'], state['ans2'], state['ans3']]
             state_tab.append(state)
-        
+
         text_tab = tlk_handle.read(64000).split(b"\0")
         for i, t in enumerate(text_tab):
             text_tab[i] = t.decode("cp850").replace("\r","\n").strip()
         return tlk_random, informer_tab, state_tab, text_tab
-        
+
