@@ -35,7 +35,7 @@ Screenshots
 To do
 =====
 
-* Support for NVFs of the various (compressed) types.
+* Use the correct palettes for graphics that don't come with palette.
 * Parse list of direction signs.
 * Draw routes on the map.
 * Display automaps of dungeons and towns.
