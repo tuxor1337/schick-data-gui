@@ -1,13 +1,8 @@
 
 import re, struct
-import numpy as np
 
-varsize_tab = {
-    'char': 1,
-    'short': 2,
-    'long': 4,
-    'RealPt': 4
-}
+from schick.util import process_nvf, sizeof, parse_pal, img_to_rgb
+from schick.pp20 import PP20File
 
 text_ltx_towns = 235
 ds_offset = 0x173c0
@@ -17,21 +12,23 @@ state_keys = ["txt_id", "opt1", "opt2", "opt3", "ans1", "ans2", "ans3"]
 route_keys = ["from", "to", "length", "speed_mod", "encounters", "u1", "u2", "fights", "u3"]
 tevent_keys = ["route_id", "place", "tevent_id"]
 
-random_tlk_files = ["SCHMIED.TLK", "GHANDEL.TLK", "KHANDEL.TLK", "WHANDEL.TLK", "HERBERG.TLK"]
+graphics_full_size = ["KARTE.DAT", "SKULL.NVF"]
+graphics_full_size_pp20 = [
+    "PLAYM_UK", "PLAYM_US", "ZUSTA_UK", "ZUSTA_US", "BUCH.DAT",
+    "KCBACK.DAT", "KCLBACK.DAT", "KDBACK.DAT", "KDLBACK.DAT", "KLBACK.DAT",
+    "KLLBACK.DAT", "KSBACK.DAT", "KSLBACK.DAT"
+]
+graphics_fixed_size = {
+    "ICONS": (24, 24, 55), # 0x302 undetermined bytes left in this file!
+    "BICONS": (24, 24, 9),
+    "IN_HEADS.NVF": (32, 32, 71),
+    "SPSTAR.NVF": (32, 32, 3),
+    "POPUP.DAT": (8, 16, 13)
+}
+graphics_fonts = ["FONT6", "FONT8"]
+graphics_nvf = ["COMPASS", "TEMPICON", "SPLASHES.DAT"]
 
-def sizeof(varstr):
-    varstr = re.sub(r'(un)?signed\s+', "", varstr)
-    arrsize = 1
-    if varstr[-1] == "]":
-        pos = varstr.find("[")
-        arrsize = int(varstr[pos+1:-1])
-        varstr = varstr[:pos]
-    if varstr[-1] == ")":
-        pos = varstr.find("(")
-        varsize = int(varstr[pos+1:-1])
-    else:
-        varsize = varsize_tab[varstr]
-    return varsize*arrsize
+random_tlk_files = ["SCHMIED.TLK", "GHANDEL.TLK", "KHANDEL.TLK", "WHANDEL.TLK", "HERBERG.TLK"]
 
 class SchickReader(object):
     def __init__(self, schickm_exe, schick_dat, symbols_h):
@@ -48,6 +45,8 @@ class SchickReader(object):
         self.archive_files = self.get_var_bytes(self.get_var_by_name("SCHICK_DAT_FNAMES")).split(b"\0")
         self.archive_files = [s.strip().decode() for s in self.archive_files[1:-1]]
 
+        self.init_palettes()
+
     def init_vars(self):
         self.vars = []
         self.vars_info = []
@@ -58,6 +57,40 @@ class SchickReader(object):
                 continue
             self.vars.append("%s (0x%04x)" % (data["name"], data["offset"]))
             self.vars_info.append(data)
+
+    def init_palettes(self):
+        """
+        It's still not clear which palettes to use for those graphics that
+        don't come with their own palette. Here are the palettes that are
+        stored in the data segment together with the palette offsets used
+        in the game (comment at end of line).
+        Some of the palettes, such as PALETTE_BUILDINGS (at offset 0x80) or
+        PALETTE_FLOOR (at offset 0x00) are loaded at game time, so those
+        variables are not helpful.
+        """
+        pal_fight1 = parse_pal(self.get_var_bytes(self.get_var_by_offset(0x2783))) # 0x00 (0x20)
+        pal_statuspage = parse_pal(self.get_var_bytes(self.get_var_by_name("STATUSPAGE_PALETTE"))) # 0x00 (0x20)
+        pal_general = parse_pal(self.get_var_bytes(self.get_var_by_offset(0xb2b1))) # 0x20 (0x20)
+        pal_unkn4 = parse_pal(self.get_var_bytes(self.get_var_by_offset(0xb251))) # 0x40 (0x20)
+        pal_unkn1 = parse_pal(self.get_var_bytes(self.get_var_by_offset(0x2723))) # 0x60 (0x20)
+        pal_fight2 = parse_pal(self.get_var_bytes(self.get_var_by_offset(0x7d0e))) # 0x80 (0x14)
+        pal_unkn3 = parse_pal(self.get_var_bytes(self.get_var_by_offset(0xb248))) # 0xc8 (0x03)
+        pal_unkn2 = parse_pal(self.get_var_bytes(self.get_var_by_offset(0xb230))) # 0xd8 (0x08)
+        pal_special = parse_pal(self.get_var_bytes(self.get_var_by_offset(0x27e3))) # 0xe0 (0x20)
+
+        pal_dummy = [[0,0,0]]*0x100
+        pal_dummy[0x00:0x20] = pal_statuspage
+        pal_dummy[0x20:0x40] = pal_general
+        pal_dummy[0x40:0x60] = pal_unkn4
+        pal_dummy[0x60:0x80] = pal_unkn1
+        pal_dummy[0x80:0xc0] = pal_general + pal_special
+        pal_dummy[0xc8:0xcb] = pal_unkn3
+        pal_dummy[0xd8:0xe0] = pal_unkn2
+        pal_dummy[0xe0:] = pal_special
+        self.pal_standard = pal_dummy.copy()
+        pal_dummy[0x00:0x20] = pal_fight1
+        pal_dummy[0x80:0x94] = pal_fight2
+        self.pal_fight = pal_dummy.copy()
 
     def parse_symbols_h_line(self, line):
         if line[:2] not in ["//", "#d"] or line.find("SYMBOLS_H") >= 0:
@@ -177,25 +210,10 @@ class SchickReader(object):
         tx_index = self.read_archive_file(fname).decode("cp850").split("\0")
         return [s.replace("\r","\n").strip() for s in tx_index]
 
-    def parse_pal(self, bytes, offset=0):
-        palette = [[0,0,0]]*offset
-        for i in range(0, len(bytes), 3):
-            palette.append([b*4 for b in bytes[i:i+3]])
-        return palette
-
-    def img_to_rgb(self, img):
-        img["rgb"] = np.zeros((len(img["raw"]), 3), dtype=np.uint8)
-        for i, b in enumerate(img["raw"]):
-            if img["palette"] is None:
-                img["rgb"][i,:] = 4*np.array([b,b,b], dtype=np.uint8)
-            else:
-                img["rgb"][i,:] = np.array(img["palette"][b], dtype=np.uint8)
-        img["rgb"] = img["rgb"].reshape((img["height"], img["width"], 3))
-
     def read_archive_nvf_file(self, fname, no=None):
-        bytes = self.read_archive_file(fname)
         images = []
-        if fname in ["KARTE.DAT", "SKULL.NVF"]:
+        if fname in graphics_full_size:
+            bytes = self.read_archive_file(fname)
             pal_offset = 320*200 + 2
             pal_len = len(bytes) - pal_offset
             img = {
@@ -203,25 +221,49 @@ class SchickReader(object):
                 "height": 200,
                 "scaling": 0,
                 "raw": bytes[0:320*200],
-                "palette": self.parse_pal(bytes[pal_offset:pal_offset+pal_len])
+                "palette": parse_pal(bytes[pal_offset:pal_offset+pal_len])
             }
-            self.img_to_rgb(img)
+            img_to_rgb(img)
             images.append(img)
-        elif fname == "IN_HEADS.NVF":
-            pal_bytes = self.get_var_bytes(self.get_var_by_offset(0xb2b1))
-            pal_parsed = self.parse_pal(pal_bytes, 32)
-            for i, offset in enumerate(range(0, len(bytes), 1024)):
+        elif fname in graphics_full_size_pp20:
+            f = PP20File(self.read_archive_file(fname))
+            bytes = f.decrunch()
+            if len(bytes) > 64000:
+                palette = 8*parse_pal(bytes[64002:])
+                bytes = bytes[:64000]
+            else:
+                print("No palette! Trying standard palette...")
+                palette = self.pal_standard
+            img = {
+                "width": 320,
+                "height": 200,
+                "scaling": 0,
+                "raw": bytes,
+                "palette": palette
+            }
+            img_to_rgb(img)
+            images.append(img)
+        elif fname in graphics_fixed_size.keys():
+            if fname == "POPUP.DAT":
+                f = PP20File(self.read_archive_file(fname))
+                bytes = f.decrunch()
+            else:
+                bytes = self.read_archive_file(fname)
+            width, height, count = graphics_fixed_size[fname]
+            print("No palette! Trying standard palette...")
+            for i, offset in enumerate(range(0, count*width*height, width*height)):
                 if no == None or no == i:
                     img = {
-                        "width": 32,
-                        "height": 32,
+                        "width": width,
+                        "height": height,
                         "scaling": 1.5,
-                        "raw": bytes[offset:offset+32*32],
-                        "palette": pal_parsed
+                        "raw": bytes[offset:offset+width*height],
+                        "palette": self.pal_standard
                     }
-                    self.img_to_rgb(img)
+                    img_to_rgb(img)
                     images.append(img)
-        elif fname[:4] == "FONT":
+        elif fname in graphics_fonts:
+            bytes = self.read_archive_file(fname)
             palette = [[0x21, 0x61, 0x25], [255,255,255]]
             for offset in range(0, len(bytes), 8):
                 raw = "".join("{:08b}".format(b) for b in bytes[offset:offset+8])
@@ -233,7 +275,28 @@ class SchickReader(object):
                     "raw": raw,
                     "palette": palette
                 }
-                self.img_to_rgb(img)
+                img_to_rgb(img)
+                images.append(img)
+        elif fname[-3:] == "NVF" or fname in graphics_nvf:
+            nvf_imgs, pal_raw = process_nvf(*self.load_archive_file(fname))
+            # ["TFLOOR1.NVF", "TFLOOR2.NVF", "FACE.NVF", "HYGGELIK.NVF"]
+            palette = parse_pal(pal_raw)
+            if fname in ["GUERTEL.NVF", "LTURM.NVF", "MARBLESL.NVF", "SHIPSL.NVF", "STONESL.NVF", "TDIVERSE.NVF"]:
+                palette = [[0,0,0]]*0x80 + palette
+            elif len(palette) == 0:
+                print("No palette! Trying fight palette...")
+                palette = self.pal_fight
+            if len(palette) < 256:
+                palette += [[0,0,0]]*(256-len(palette))
+            for i in nvf_imgs:
+                img = {
+                    "width": i['width'],
+                    "height": i['height'],
+                    "scaling": 1.5,
+                    "raw": i['raw'],
+                    "palette": palette
+                }
+                img_to_rgb(img)
                 images.append(img)
         return images
 
