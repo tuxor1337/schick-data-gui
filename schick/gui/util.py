@@ -4,10 +4,13 @@ from tkinter import ttk
 
 from PIL import Image, ImageTk
 
-import math
+import math, os
 
 def img_to_tk(img, max_width=0):
     img_pil = Image.fromarray(img["rgb"])
+    # If you want to export pictures, this is how you do it in principle...
+    #i = 0; while os.path.exists("exported-%03d.png" % i): i += 1
+    #img_pil.save("exported-%03d.png" % i)
     if img["scaling"] == 0 and max_width != 0:
         out_w = max(img["width"], max_width)
         out_h = max(img["height"], math.floor(img["height"]*max_width/img["width"]))

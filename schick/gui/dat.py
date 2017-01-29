@@ -4,16 +4,16 @@ from schick.gui.dat_extra import *
 from tkinter import *
 from tkinter import ttk
 
+meta_files = ["MONSTER.TAB", "MFIGS.TAB", "WFIGS.TAB", "ANIS.TAB"]
+ani_files = ["MONSTER", "MFIGS", "WFIGS", "ANIS"]
+fight_files = ["FIGHT.LST", "SCENARIO.LST", "MONSTER.DAT", "ANI.DAT", "WEAPANI.DAT", "FIGHTTXT.LTX"]
+tx_files = ["ITEMNAME", "MONNAMES"]
 nvf_files = [
     "KARTE.DAT", "COMPASS", "TEMPICON", "SPLASHES.DAT", "PLAYM_UK", "PLAYM_US",
     "ZUSTA_UK", "ZUSTA_US", "BUCH.DAT", "KCBACK.DAT", "KCLBACK.DAT",
     "KDBACK.DAT", "KDLBACK.DAT", "KLBACK.DAT", "KLLBACK.DAT", "KSBACK.DAT",
     "KSLBACK.DAT", "POPUP.DAT", "BICONS", "ICONS", "FONT6", "FONT8"
-]
-
-ani_files = ["MONSTER", "MONSTER.TAB", "MFIGS", "MFIGS.TAB", "WFIGS", "WFIGS.TAB", "ANIS", "ANIS.TAB"]
-fight_files = ["FIGHT.LST", "SCENARIO.LST", "MONSTER.DAT", "ANI.DAT", "WEAPANI.DAT", "FIGHTTXT.LTX"]
-tx_files = ["ITEMNAME", "MONNAMES"]
+] + ani_files
 
 class SchickDatContent(ttk.Frame):
     def __init__(self, master, schick_reader):
@@ -23,17 +23,35 @@ class SchickDatContent(ttk.Frame):
         self.index = self.schick_reader.archive_files
 
         self.v_name = StringVar()
+        self.page_str = StringVar(value="1/1")
         self.content = None
 
         lbl = ttk.Label(self, textvariable=self.v_name, font="bold")
+        page_lbl = ttk.Label(self, textvariable=self.page_str)
+        self.b_prev = Button(self, text="<<")
+        self.b_next = Button(self, text=">>")
 
         lbl.grid(column=0, row=0, padx=10, pady=5, sticky=(N,W))
+        page_lbl.grid(column=1, row=0, padx=10, pady=5, sticky=(N,W))
+        self.b_prev.grid(column=2, row=0, padx=2, sticky=(N,W))
+        self.b_next.grid(column=3, row=0, padx=2, sticky=(N,W))
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
 
         self.v_name.set('')
 
-    def show(self, idx):
+        self.page = 0
+        self.max_pages = 1
+        self.b_prev.config(state=DISABLED)
+        self.b_next.config(state=DISABLED)
+        self.b_prev.config(command=lambda: self.button_cb(False))
+        self.b_next.config(command=lambda: self.button_cb())
+
+    def show(self, idx, page=None):
+        if page is None:
+            self.fid = idx
+            self.page = 0
+
         fname = self.index[idx]
         self.v_name.set(fname)
         if self.content is not None:
@@ -44,10 +62,26 @@ class SchickDatContent(ttk.Frame):
         elif fname[-3:] == "TLK":
             self.content = SchickDatTlkContent(self, self.schick_reader, fname)
         elif fname in nvf_files or fname[-3:] == "NVF":
-            self.content = SchickDatNVFContent(self, self.schick_reader, fname)
+            self.content = SchickDatNVFContent(self, self.schick_reader, fname, page)
         else:
             self.content = SchickDatHexContent(self, self.schick_reader, fname)
-        self.content.grid(column=0, row=1, padx=10, pady=5, sticky=(N,E,S,W))
+        self.max_pages = self.content.max_pages
+        self.content.grid(column=0, row=1, columnspan=4, padx=10, pady=5, sticky=(N,E,S,W))
+
+        self.b_prev.config(state=DISABLED)
+        self.b_next.config(state=DISABLED)
+        if self.page < self.max_pages - 1:
+            self.b_next.config(state=ACTIVE)
+        if self.page > 0:
+            self.b_prev.config(state=ACTIVE)
+        self.page_str.set("%d/%d" % (self.page+1, self.max_pages))
+
+    def button_cb(self, next=True):
+        if next:
+            self.page += 1
+        else:
+            self.page -= 1
+        self.show(self.fid, self.page)
 
     def color_cb(self, idx):
         name = self.index[idx]
@@ -57,7 +91,7 @@ class SchickDatContent(ttk.Frame):
             return "#ffffff", '#339933'
         elif name in fight_files:
             return "#ffffff", '#333333'
-        elif name in ani_files:
+        elif name in meta_files:
             return "#000000", '#aaeeaa'
         elif name.find("ROUT") >= 0:
             return "#000000", '#ff5555'
