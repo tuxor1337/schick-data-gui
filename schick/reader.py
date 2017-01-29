@@ -1,7 +1,7 @@
 
 import re, struct
 
-from schick.util import process_nvf, sizeof, parse_pal, img_to_rgb
+from schick.util import process_nvf, process_ani, sizeof, parse_pal, img_to_rgb
 from schick.pp20 import PP20File
 
 text_ltx_towns = 235
@@ -26,7 +26,8 @@ graphics_fixed_size = {
     "POPUP.DAT": (8, 16, 13)
 }
 graphics_fonts = ["FONT6", "FONT8"]
-graphics_nvf = ["COMPASS", "TEMPICON", "SPLASHES.DAT"]
+graphics_nvf_ani = ["MONSTER", "MFIGS", "WFIGS","ANIS"]
+graphics_nvf = ["COMPASS", "TEMPICON", "SPLASHES.DAT"] + graphics_nvf_ani
 
 random_tlk_files = ["SCHMIED.TLK", "GHANDEL.TLK", "KHANDEL.TLK", "WHANDEL.TLK", "HERBERG.TLK"]
 
@@ -193,7 +194,7 @@ class SchickReader(object):
         return self.tevents_tab[no]
 
     def get_in_head(self, no):
-        return self.read_archive_nvf_file("IN_HEADS.NVF", no)[0]
+        return self.read_archive_nvf_file("IN_HEADS.NVF", no)[0][0]
 
     def load_archive_file(self, fname):
         fileindex = self.archive_files.index(fname)
@@ -212,6 +213,7 @@ class SchickReader(object):
 
     def read_archive_nvf_file(self, fname, no=None):
         images = []
+        max_pages = 1
         if fname in graphics_full_size:
             bytes = self.read_archive_file(fname)
             pal_offset = 320*200 + 2
@@ -278,7 +280,21 @@ class SchickReader(object):
                 img_to_rgb(img)
                 images.append(img)
         elif fname[-3:] == "NVF" or fname in graphics_nvf:
-            nvf_imgs, pal_raw = process_nvf(*self.load_archive_file(fname))
+            if fname in graphics_nvf_ani:
+                if no is None or no < 0: no = 0
+                bytes = self.read_archive_file("%s.TAB" % fname)
+                max_pages = len(bytes) / 4 - 1
+                no = min(no, max_pages-1)
+                offset = struct.unpack("<L", bytes[no*4:(no+1)*4])[0]
+                length = struct.unpack("<L", bytes[(no+1)*4:(no+2)*4])[0] - offset
+                handle, _ = self.load_archive_file(fname)
+                handle.seek(offset, 1)
+                if fname == "ANIS":
+                    nvf_imgs, pal_raw = process_ani(handle.read(length))
+                else:
+                    nvf_imgs, pal_raw = process_nvf(handle, length)
+            else:
+                nvf_imgs, pal_raw = process_nvf(*self.load_archive_file(fname))
             # ["TFLOOR1.NVF", "TFLOOR2.NVF", "FACE.NVF", "HYGGELIK.NVF"]
             palette = parse_pal(pal_raw)
             if fname in ["GUERTEL.NVF", "LTURM.NVF", "MARBLESL.NVF", "SHIPSL.NVF", "STONESL.NVF", "TDIVERSE.NVF"]:
@@ -298,7 +314,7 @@ class SchickReader(object):
                 }
                 img_to_rgb(img)
                 images.append(img)
-        return images
+        return images, max_pages
 
     def read_archive_tlk_file(self, fname):
         tlk_handle, tlk_len = self.load_archive_file(fname)

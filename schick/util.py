@@ -3,8 +3,68 @@ import string, math, struct, re
 import numpy as np
 from schick.pp20 import PP20File
 
+def process_ani(bytes):
+    images = []
+    ani_data_offset, ani_pal_offset = struct.unpack("<LL", bytes[:8])
+    ani_pal_offset += 6
+    ani_unkn1, ani_unkn2, ani_pal_count, ani_compr_flag = struct.unpack(
+        "<HHBB", bytes[ani_pal_offset-6:ani_pal_offset]
+    )
+    ani_width, ani_height, ani_areacount = struct.unpack("<HBB", bytes[8:12])
+    if ani_compr_flag != 0:
+        (ani_data_length,) = struct.unpack(
+            "<L", bytes[ani_data_offset:ani_data_offset+4]
+        )
+        f = PP20File(bytes[ani_data_offset:ani_data_offset+ani_data_length])
+        ani_data = f.decrunch()
+    else:
+        ani_data_length = ani_width*ani_height
+        ani_data = bytes[ani_data_offset:ani_data_offset+ani_data_length]
+    images.append({
+        "width": ani_width,
+        "height": ani_height,
+        "raw": ani_data
+    })
+    ani_area_offsets = struct.unpack(
+        "<%dL" % ani_areacount, bytes[12:12 + ani_areacount*4]
+    )
+    for a in ani_area_offsets:
+        area_name = bytes[a:a+4].decode("cp850")
+        area_x, area_y, area_height, area_width, area_unkn, \
+        area_pics, ani_data_offset = struct.unpack(
+            "<HBBHBBL", bytes[a+4:a+16]
+        )
+        area_size = area_width*area_height
+        if ani_compr_flag != 0:
+            (ani_data_length,) = struct.unpack(
+                "<L", bytes[ani_data_offset:ani_data_offset+4]
+            )
+            f = PP20File(bytes[ani_data_offset:ani_data_offset+ani_data_length])
+            ani_data = f.decrunch()
+        else:
+            ani_data_length = area_size*area_pics
+            ani_data = bytes[ani_data_offset:ani_data_offset+ani_data_length]
+        for i in range(area_pics):
+            images.append({
+                "width": area_width,
+                "height": area_height,
+                "raw": ani_data[i*area_size:(i+1)*area_size]
+            })
+        area_changes_offset = a+4*area_pics+14
+        (area_changes_count,) = struct.unpack("<H", bytes[area_changes_offset-2:area_changes_offset])
+        area_changes = []
+        for i in range(area_changes_count):
+            # we don't need this now, but maybe in the future?
+            area_changes.append(struct.unpack("<HH",
+                bytes[area_changes_offset+i*4:area_changes_offset+(i+1)*4]
+            ))
+    ani_pal_data = bytes[ani_pal_offset:ani_pal_offset+3*ani_pal_count]
+    return images, ani_pal_data
+
 def process_nvf(handle, length):
     nvf_type, count = struct.unpack("<BH", handle.read(3))
+    va = nvf_type & 0x80
+    nvf_type &= 0x7f
     n = 3
     compressed_sizes = []
     dims = []
@@ -20,12 +80,19 @@ def process_nvf(handle, length):
         dims = [struct.unpack("<HH", handle.read(4)) for n in range(count)]
         compressed_sizes = [w*h for w,h in dims]
         n += 4*count
-    else:
+    elif nvf_type in [0x03, 0x05]:
         for n in range(count):
             w, h, s = struct.unpack("<HHL", handle.read(8))
             dims.append((w,h))
             compressed_sizes.append(s)
             n += 8
+    else:
+        raise Exception("invalid nvf_type: %d" % nvf_type)
+
+    if va != 0:
+        # don't know yet what this means
+        pass
+
     imgs = []
     for s, cs in zip(dims, compressed_sizes):
         data = handle.read(cs)

@@ -10,6 +10,7 @@ class SchickDatTlkContent(ttk.Frame):
     def __init__(self, master, schick_reader, fname):
         ttk.Frame.__init__(self, master)
 
+        self.max_pages = 1
         self.schick_reader = schick_reader
 
         self.random, self.informers, self.states, self.texts = schick_reader.read_archive_tlk_file(fname)
@@ -132,7 +133,7 @@ class SchickDatTlkContent(ttk.Frame):
             self.load_in_state(idx)
 
 class SchickDatNVFContent(ttk.Frame):
-    def __init__(self, master, schick_reader, fname):
+    def __init__(self, master, schick_reader, fname, page=0):
         ttk.Frame.__init__(self, master)
 
         self.schick_reader = schick_reader
@@ -149,7 +150,7 @@ class SchickDatNVFContent(ttk.Frame):
 
         self.canvas.bind("<Configure>", self.on_resize)
 
-        self.images = self.schick_reader.read_archive_nvf_file(fname)
+        self.images, self.max_pages = self.schick_reader.read_archive_nvf_file(fname, page)
         self.show_images()
 
     def on_resize(self, event):
@@ -175,6 +176,7 @@ class SchickDatTxContent(ttk.Frame):
     def __init__(self, master, schick_reader, fname):
         ttk.Frame.__init__(self, master)
 
+        self.max_pages = 1
         self.tx_index = schick_reader.read_archive_tx_file(fname)
 
         self.by_index = StringVar()
@@ -224,6 +226,7 @@ class SchickDatTxContent(ttk.Frame):
 
 class SchickDatHexContent(ttk.Frame):
     def __init__(self, master, schick_reader, fname):
+        self.max_pages = 1
         ttk.Frame.__init__(self, master)
         text = Text(self, height=20, width=65, padx=10, pady=10)
         text.grid(column=0, row=0, padx=10, pady=5, sticky=(N,S))
