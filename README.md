@@ -26,6 +26,8 @@ operating systems this might or might not work.
 Screenshots
 ===========
 
+![screenshot4](https://raw.githubusercontent.com/tuxor1337/schick-data-gui/master/screenshot4.png "Display automap in SCHICKM.DAT")
+
 ![screenshot3](https://raw.githubusercontent.com/tuxor1337/schick-data-gui/master/screenshot3.png "Display a dialog in SCHICKM.DAT")
 
 ![screenshot1](https://raw.githubusercontent.com/tuxor1337/schick-data-gui/master/screenshot.png "Display FONT6 in SCHICKM.DAT")
@@ -38,7 +40,6 @@ To do
 * Use the correct palettes for graphics that don't come with palette.
 * Parse list of direction signs.
 * Draw routes on the map.
-* Display automaps of dungeons and towns.
 * Display fight scenarios.
 * Support for VOC and XMI file playback.
 * Parse `FIGHT.LST`, `ITEMS.DAT`, `BSKILLS.DAT`, NPC files, ...

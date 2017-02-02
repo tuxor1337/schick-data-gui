@@ -1,5 +1,5 @@
 
-from schick.util import hexdump
+from schick.util import hexdump, img_to_rgb
 from schick.gui.util import FilteredListbox, img_to_tk
 
 from tkinter import *
@@ -131,6 +131,68 @@ class SchickDatTlkContent(ttk.Frame):
         idx = self.state_select.curselection()
         if idx is not None:
             self.load_in_state(idx)
+
+class SchickDatMapContent(ttk.Frame):
+    def __init__(self, master, schick_reader, fname, page=0):
+        ttk.Frame.__init__(self, master)
+
+        self.page = page
+        self.schick_reader = schick_reader
+
+        self.canvas = Canvas(self, height=8*16*1.5)
+        self.lbox = FilteredListbox(self, listvariable=[], height=15)
+
+        self.canvas.grid(row=0, column=0, pady=5, sticky=(N,E,S,W))
+        self.lbox.grid(row=1, column=0, sticky=(N,E,S,W))
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        self.canvas.bind("<Configure>", self.on_resize)
+        self.lbox.bind("<<ListboxSelect>>", self.select_loc_cb)
+
+        self.images, self.loctab = self.schick_reader.read_archive_map_file(fname)
+        for img in self.images: img["bak"] = img["rgb"].copy()
+        self.max_pages = len(self.images)
+        self.filter_loctab(self.page)
+        self.show_image(self.page)
+
+    def select_loc_cb(self, *args):
+        idx = self.lbox.curselection()
+        if idx is not None:
+            self.mark_tile(self.loctab_filtered[idx][0][1:])
+
+    def mark_tile(self, coords):
+        img = self.images[self.page]
+        y,x = coords
+        x *= 8; y *= 8
+        img["rgb"][:] = img["bak"]
+        color = [255,255,255]
+        img["rgb"][x:x+9,y:y+2] = color
+        img["rgb"][x:x+9,y+7:y+9] = color
+        img["rgb"][x:x+2,y:y+9] = color
+        img["rgb"][x+7:x+9,y:y+9] = color
+        self.show_image(self.page)
+
+    def on_resize(self, event):
+        self.canvas.delete("all")
+        self.show_image(self.page)
+        
+    def filter_loctab(self, lvl):
+        listvar = []
+        self.loctab_filtered = []
+        for l in self.loctab:
+            if lvl == l[0][0]:
+                listvar.append(
+                    "({:02d},{:02d}): {} (#{}, {})".format(*l[0][1:], *l[1:])
+                )
+                self.loctab_filtered.append(l)
+        self.lbox.set_listvariable(listvar)
+
+    def show_image(self, page):
+        img = self.images[page]
+        img_to_tk(img)
+        posx = (self.canvas.winfo_width()-img["tk"].width())//2
+        self.canvas.create_image((posx,0), anchor=NW, image=img["tk"])
 
 class SchickDatNVFContent(ttk.Frame):
     def __init__(self, master, schick_reader, fname, page=0):
