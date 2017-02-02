@@ -4,10 +4,6 @@ from schick.gui.util import FilteredListbox
 from tkinter import *
 from tkinter import ttk
 
-class SchickXDirSignsContent(ttk.Frame):
-    def __init__(self, master, schick_reader):
-        ttk.Frame.__init__(self, master)
-
 class SchickXTEventsContent(ttk.Frame):
     def __init__(self, master, schick_reader):
         ttk.Frame.__init__(self, master)
@@ -15,13 +11,11 @@ class SchickXTEventsContent(ttk.Frame):
         self.schick_reader = schick_reader
         self.init_tevents()
 
-        self.text = Text(self, height=10, padx=10, pady=10)
         self.lbox = FilteredListbox(self, listvariable=self.tevents, height=30)
 
-        self.lbox.grid(column=0, row=1, columnspan=5, sticky=(N,E,S,W))
-        self.text.grid(column=0, row=2, columnspan=5, padx=10, pady=5, sticky=(W,E))
-        self.grid_columnconfigure(4, weight=1)
-        self.grid_rowconfigure(1, weight=1)
+        self.lbox.grid(column=0, row=0, sticky=(N,E,S,W))
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
 
         self.lbox.bind("<<ListboxSelect>>", self.select_cb)
 
@@ -52,13 +46,11 @@ class SchickXRoutesContent(ttk.Frame):
         self.schick_reader = schick_reader
         self.init_routes()
 
-        self.text = Text(self, height=10, padx=10, pady=10)
         self.lbox = FilteredListbox(self, listvariable=self.routes, height=30)
 
-        self.lbox.grid(column=0, row=1, columnspan=5, sticky=(N,E,S,W))
-        self.text.grid(column=0, row=2, columnspan=5, padx=10, pady=5, sticky=(W,E))
-        self.grid_columnconfigure(4, weight=1)
-        self.grid_rowconfigure(1, weight=1)
+        self.lbox.grid(column=0, row=0, sticky=(N,E,S,W))
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
 
         self.lbox.bind("<<ListboxSelect>>", self.select_cb)
 
@@ -82,12 +74,11 @@ class SchickXContent(ttk.Frame):
         ttk.Frame.__init__(self, master)
 
         self.schick_reader = schick_reader
-        self.index = ["Routes", "Travel events", "Direction Signs"]
+        self.index = ["Routes", "Travel events"]
 
         self.contents = {
             "Routes": SchickXRoutesContent(self, self.schick_reader),
-            "Travel events": SchickXTEventsContent(self, self.schick_reader),
-            "Direction Signs": SchickXDirSignsContent(self, self.schick_reader),
+            "Travel events": SchickXTEventsContent(self, self.schick_reader)
         }
 
         self.v_name = StringVar()

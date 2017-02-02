@@ -14,6 +14,22 @@ nvf_files = [
     "KDBACK.DAT", "KDLBACK.DAT", "KLBACK.DAT", "KLLBACK.DAT", "KSBACK.DAT",
     "KSLBACK.DAT", "POPUP.DAT", "BICONS", "ICONS", "FONT6", "FONT8"
 ] + ani_files
+map_files = [
+    "THORWAL.DAT", "SERSKE.DAT", "BREIDA.DAT", "PEILINEN.DAT", "ROVAMUND.DAT",
+    "NORDVEST.DAT", "KRAVIK.DAT", "SKELELLE.DAT", "MERSKE.DAT", "EFFERDUN.DAT",
+    "TJOILA.DAT", "RUKIAN.DAT", "ANGBODIRTAL.DAT", "AUPLOG.DAT", "VILNHEIM.DAT",
+    "BODON.DAT", "OBERORKEN.DAT", "PHEXCAER.DAT", "GROENVEL.DAT",
+    "FELSTEYN.DAT", "EINSIEDL.DAT", "ORKANGER.DAT", "CLANEGH.DAT", "LISKOR.DAT",
+    "THOSS.DAT", "TJANSET.DAT", "ALA.DAT", "ORVIL.DAT", "OVERTHORN.DAT",
+    "ROVIK.DAT", "HJALSING.DAT", "GUDDASUN.DAT", "KORD.DAT", "TREBAN.DAT",
+    "ARYN.DAT", "RUNINSHA.DAT", "OTTARJE.DAT", "SKJAL.DAT", "PREM.DAT",
+    "DASPOTA.DAT", "RYBON.DAT", "LJASDAHL.DAT", "VARNHEIM.DAT", "VAERMHAG.DAT",
+    "TYLDON.DAT", "VIDSAND.DAT", "BRENDHIL.DAT", "MANRIN.DAT", "FTJOILA.DAT",
+    "FANGBODI.DAT", "HJALLAND.DAT", "RUNIN.DAT",
+    "SHIP.DNG", "F046.DNG", "F051.DNG", "F061.DNG", "F076.DNG", "F094.DNG",
+    "F100.DNG", "F108.DNG", "F126.DNG", "F129.DNG", "F131.DNG", "OBER.DNG",
+    "PREM.DNG", "THORWAL.DNG", "FINAL.DNG"
+]
 
 class SchickDatContent(ttk.Frame):
     def __init__(self, master, schick_reader):
@@ -62,7 +78,9 @@ class SchickDatContent(ttk.Frame):
         elif fname[-3:] == "TLK":
             self.content = SchickDatTlkContent(self, self.schick_reader, fname)
         elif fname in nvf_files or fname[-3:] == "NVF":
-            self.content = SchickDatNVFContent(self, self.schick_reader, fname, page)
+            self.content = SchickDatNVFContent(self, self.schick_reader, fname, self.page)
+        elif fname in map_files:
+            self.content = SchickDatMapContent(self, self.schick_reader, fname, self.page)
         else:
             self.content = SchickDatHexContent(self, self.schick_reader, fname)
         self.max_pages = self.content.max_pages
@@ -93,6 +111,8 @@ class SchickDatContent(ttk.Frame):
             return "#ffffff", '#333333'
         elif name in meta_files:
             return "#000000", '#aaeeaa'
+        elif name in map_files:
+            return "#000000", '#ffaaee'
         elif name.find("ROUT") >= 0:
             return "#000000", '#ff5555'
         elif name[-3:] == "NPC":
