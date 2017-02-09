@@ -81,6 +81,8 @@ class SchickDatContent(ttk.Frame):
             self.content = SchickDatNVFContent(self, self.schick_reader, fname, self.page)
         elif fname in map_files:
             self.content = SchickDatMapContent(self, self.schick_reader, fname, self.page)
+        elif fname == "ITEMS.DAT":
+            self.content = SchickDatItemsContent(self, self.schick_reader)
         else:
             self.content = SchickDatHexContent(self, self.schick_reader, fname)
         self.max_pages = self.content.max_pages
