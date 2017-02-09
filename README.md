@@ -42,7 +42,7 @@ To do
 * Draw routes on the map.
 * Display fight scenarios.
 * Support for VOC and XMI file playback.
-* Parse `FIGHT.LST`, `ITEMS.DAT`, `BSKILLS.DAT`, NPC files, ...
+* Parse `FIGHT.LST`, `BSKILLS.DAT`, NPC files, ...
 
 Links
 =====

@@ -8,6 +8,8 @@ from schick.automap import draw_automap, parse_locations_tab, parse_locations_dd
 text_ltx_towns = 235
 ds_offset = 0x173c0
 
+items_dat_flags = ["armor", "weapon", "useable", "food", "stackable", "herb/potion", "undropable", "unknown"]
+
 informer_keys = ["state_offset", "txt_offset", "title", "head_id"]
 state_keys = ["txt_id", "opt1", "opt2", "opt3", "ans1", "ans2", "ans3"]
 route_keys = ["from", "to", "length", "speed_mod", "encounters", "u1", "u2", "fights", "u3"]
@@ -210,6 +212,33 @@ class SchickReader(object):
         f_handle, f_len = self.load_archive_file(fname)
         return f_handle.read(f_len)
 
+    def read_archive_items_dat(self):
+        bytes = self.read_archive_file("ITEMS.DAT")[:-12]
+        names = self.read_archive_tx_file("ITEMNAME")[:-1]
+        ggsts = self.read_archive_nvf_file("GGSTS.NVF")[0]
+        descr = []
+        for i in range(0, len(bytes), 12):
+            raw = struct.unpack("<HBBBHBHBB", bytes[i:i+12])
+            flags = []
+            for i,s in enumerate(items_dat_flags):
+                if (raw[1] >> i) & 1:
+                    flags.append(s)
+            t = raw[2]
+            if "weapon" in flags:
+                t = self.get_ttx(48+t)
+            descr.append([
+                ["pic", raw[0]],
+                ["flags", "{} ({:08b})".format(", ".join(flags), raw[1])],
+                ["type", t],
+                ["extra", raw[3]],
+                ["weight", raw[4]],
+                ["shop_unkn", raw[5]],
+                ["shop_price", raw[6]],
+                ["shop_rarity", raw[7]],
+                ["magical", raw[8]]
+            ])
+        return names, descr, ggsts
+
     def read_archive_map_file(self, fname):
         dng_flag = ("DNG" == fname[-3:])
         map_size = 0x100
@@ -285,6 +314,8 @@ class SchickReader(object):
             width, height, count = graphics_fixed_size[fname]
             print("No palette! Trying standard palette...")
             for i, offset in enumerate(range(0, count*width*height, width*height)):
+                if no is not None and i != no:
+                    continue
                 img = {
                     "width": width,
                     "height": height,

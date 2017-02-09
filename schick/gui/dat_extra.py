@@ -6,6 +6,79 @@ from tkinter import *
 from tkinter import ttk
 import tkinter as tk
 
+class SchickDatItemsContent(ttk.Frame):
+    def __init__(self, master, schick_reader):
+        ttk.Frame.__init__(self, master)
+        self.schick_reader = schick_reader
+
+        self.max_pages = 1
+        self.names, self.descr, self.ggsts = self.schick_reader.read_archive_items_dat()
+
+        self.name = StringVar()
+        self.by_index = StringVar()
+        self.by_hex = StringVar()
+
+        l_name = ttk.Label(self, textvariable=self.name, width=15)
+        l1 = ttk.Label(self, text="#")
+        e1 = Entry(self, textvariable=self.by_index, width=3)
+        l2 = ttk.Label(self, text="get_tx(0x...)")
+        e2 = Entry(self, textvariable=self.by_hex, width=4)
+        self.text = Text(self, height=10, padx=10, pady=10)
+        self.lbox = FilteredListbox(self, listvariable=self.names, height=30)
+        self.ggst = ttk.Label(self, anchor=CENTER)
+
+        l_name.grid(column=0, row=0, sticky=(W,), padx=10)
+        self.ggst.grid(column=0, row=1, sticky=(N,E,S,W))
+        self.text.grid(column=1, row=0, rowspan=2, columnspan=5, padx=10, pady=5, sticky=(W,E))
+        self.lbox.grid(column=0, row=2, columnspan=6, sticky=(N,E,S,W))
+        l1.grid(column=2, row=3, sticky=(E,))
+        e1.grid(column=3, row=3, padx=(0,10), sticky=(E,))
+        l2.grid(column=4, row=3, sticky=(E,))
+        e2.grid(column=5, row=3, sticky=(E,))
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(2, weight=1)
+
+        self.by_hex.trace("w", self.by_hex_cb)
+        self.by_index.trace("w", self.by_index_cb)
+
+        self.lbox.bind("<<ListboxSelect>>", self.select_cb)
+        self.select_cb()
+
+    def load_ggsts(self, no):
+        if no < len(self.ggsts):
+            img = self.ggsts[no]
+            img["scaling"] = 5.0
+            img_to_tk(img)
+            self.img_tk = img["tk"]
+            self.ggst.config(image=self.img_tk)
+
+    def by_hex_cb(self, *args):
+        try:
+            idx = int(self.by_hex.get(), 16)//4
+            self.lbox._select(idx)
+        except ValueError:
+            pass
+
+    def by_index_cb(self, *args):
+        try:
+            idx = int(self.by_index.get())
+            self.lbox._select(idx)
+        except ValueError:
+            pass
+
+    def select_cb(self, *args):
+        idx = self.lbox.curselection()
+        if idx is not None:
+            self.name.set(self.names[idx])
+            d = self.descr[idx]
+            out = "id: {id} (0x{id:02x})\n".format(id=idx)
+            for descr in d:
+                out += "{}: {}\n".format(descr[0], descr[1])
+                if descr[0] == "pic":
+                    self.load_ggsts(descr[1])
+            self.text.delete("1.0", END)
+            self.text.insert(END, out)
+
 class SchickDatTlkContent(ttk.Frame):
     def __init__(self, master, schick_reader, fname):
         ttk.Frame.__init__(self, master)
