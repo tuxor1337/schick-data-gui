@@ -13,7 +13,7 @@ How to run
 ==========
 
 This software is made for Linux systems, but it should also run on other
-operating systems, as long as Python 3.x (with `tkinter`, `numpy` and `pillow`) is
+operating systems, as long as Python 3.5 or newer (with `tkinter`, `numpy` and `pillow`) is
 installed.
 
 It requires the files `SCHICK.DAT`, `SCHICKM.EXE` as well as `symbols.h` from the
