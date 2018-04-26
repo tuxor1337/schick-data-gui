@@ -56,7 +56,7 @@ class SchickReader(object):
     def init_vars(self):
         self.vars = []
         self.vars_info = []
-        self.v_offset = 0
+        self.v_offset = 0x0094
         for line in self.symbols_h:
             data = self.parse_symbols_h_line(line)
             if data is None:
