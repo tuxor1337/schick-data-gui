@@ -20,7 +20,7 @@ from tkinter import ttk
 
 from PIL import Image, ImageTk
 
-import math, os
+import math, os, re
 
 def img_to_tk(img, max_width=0):
     img_pil = Image.fromarray(img["rgb"])
