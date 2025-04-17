@@ -14,7 +14,8 @@ How to run
 
 This software is made for Linux systems, but it should also run on other
 operating systems, as long as Python 3.5 or newer (with `tkinter`, `numpy` and `pillow`) is
-installed.
+installed. On Debian 12, for example, it suffices to install the packages `python3`,
+`python3-tk`, `python3-numpy`, `python3-pillow` and `python3-pil.imagetk`.
 
 It requires the files `SCHICK.DAT`, `SCHICKM.EXE` as well as `symbols.h` from the
 Bright-Eyes project. Place these files in the same directory as schick-gui.py
